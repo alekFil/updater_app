@@ -9,6 +9,12 @@ import psycopg2
 import requests
 
 
+def load_config(config_path: str) -> dict:
+    """Loads configuration from a JSON file."""
+    with open(config_path, "r") as config_file:
+        return json.load(config_file)
+
+
 def connect_to_db(db_params: Dict[str, str]) -> psycopg2.extensions.connection:
     """
     Устанавливает соединение с базой данных.
@@ -96,7 +102,7 @@ def execute_queries(
         sys.exit(1)
 
 
-def main(db_params: Dict[str, str], api_url: str) -> None:
+def main(config_path: str) -> None:
     """
     Выполняет основной функционал скрипта: устанавливает соединение с базой данных,
     запрашивает информацию, преобразует данные в формат, требуемый API (pd.DataFrame),
@@ -110,6 +116,12 @@ def main(db_params: Dict[str, str], api_url: str) -> None:
     api_url : str
         Адрес API.
     """
+    config = load_config(config_path)
+
+    db_params = config["db_params"]
+    api_url = config["api_url"]
+    api_key = config["api_key"]
+
     connection = connect_to_db(db_params)
     results = execute_queries(connection)
 
@@ -155,12 +167,15 @@ def main(db_params: Dict[str, str], api_url: str) -> None:
         print("Ошибка перезагрузки сервиса:", response.status_code)
 
 
+def run() -> None:
+    """Entry point for the script to process command-line arguments."""
+    if len(sys.argv) != 2:
+        print("Usage: updater_app <path_to_config>")
+        sys.exit(1)
+
+    config_path = sys.argv[1]
+    main(config_path)
+
+
 if __name__ == "__main__":
-    with open("config.json") as config_file:
-        config = json.load(config_file)
-
-    db_connection_params = config["db_params"]
-    api_url = config["api_url"]
-    api_key = config["api_key"]
-
-    main(db_connection_params, api_url)
+    run()
