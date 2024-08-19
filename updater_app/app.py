@@ -89,13 +89,12 @@ def execute_queries(
         Если выполнение запросов завершилось с ошибкой.
     """
     try:
-        cursor = connection.cursor()
         queries = parse_queries("queries.txt")
 
         results = {}
         for key, value in queries.items():
-            cursor.execute(value)
-            results[key] = cursor.fetchall()
+            data = pd.read_sql_query(value, connection)
+            results[key] = data
         return results
     except Exception as e:
         print(f"Failed to execute queries: {e}")
@@ -125,28 +124,20 @@ def main(config_path: str) -> None:
     connection = connect_to_db(db_params)
     results = execute_queries(connection)
 
-    schools_df = pd.DataFrame(results["schools"], columns=["id", "name", "region"])
-    similar_schools_df = pd.DataFrame(
-        results["similar_schools"],
-        columns=["school_id", "name", "reference", "region"],
-    )
-
     # Сохранение данных в объекты байтового потока (как файл)
-    buffer_1: io.BytesIO = io.BytesIO()
-    joblib.dump(schools_df, buffer_1)
-    buffer_1.seek(0)
-
-    buffer_2: io.BytesIO = io.BytesIO()
-    joblib.dump(similar_schools_df, buffer_2)
-    buffer_2.seek(0)
+    files = {}
+    for i, data in enumerate(results.values()):
+        buffer: io.BytesIO = io.BytesIO()
+        joblib.dump(data, buffer)
+        buffer.seek(0)
+        files[f"file{i+1}"] = buffer
+        if i > 1:
+            print("Ошибка загрузки данных: слишком много запросов")
+            sys.exit(1)
 
     # Загрузка данных на сервер FastAPI
     upload_url: str = api_url + "upload-dataframes/"
 
-    files = {
-        "file1": buffer_1,
-        "file2": buffer_2,
-    }
     headers = {"api_key": api_key}
 
     # Запрос на загрузку
@@ -168,7 +159,7 @@ def main(config_path: str) -> None:
 
 
 def run() -> None:
-    """Entry point for the script to process command-line arguments."""
+    """Начальная функция для парсинга аргументов командной строки"""
     if len(sys.argv) != 2:
         print("Usage: updater_app <path_to_config>")
         sys.exit(1)
