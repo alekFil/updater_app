@@ -7,6 +7,7 @@ import joblib
 import pandas as pd
 import psycopg2
 import requests
+from cryptography.fernet import Fernet
 
 
 def load_config(config_path: str) -> dict:
@@ -101,6 +102,37 @@ def execute_queries(
         sys.exit(1)
 
 
+def encrypt_data(data: io.BytesIO, key: bytes) -> io.BytesIO:
+    """
+    Шифрует файл.
+
+    Parameters
+    ----------
+    data : io.BytesIO
+        Байтовый поток (файлы).
+    key : bytes
+        Ключ шифрования, известный API-приемнику.
+
+    Returns
+    -------
+    io.BytesIO
+        Зашифрованный байтовый поток.
+    """
+    # Чтение данных из потока
+    data.seek(0)
+    raw_data = data.read()
+
+    # Шифрование данных
+    fernet = Fernet(key)
+    encrypted_data = fernet.encrypt(raw_data)
+
+    # Запись зашифрованных данных в новый байтовый поток
+    encrypted_stream = io.BytesIO(encrypted_data)
+    encrypted_stream.seek(0)
+
+    return encrypted_stream
+
+
 def main(config_path: str) -> None:
     """
     Выполняет основной функционал скрипта: устанавливает соединение с базой данных,
@@ -120,6 +152,7 @@ def main(config_path: str) -> None:
     db_params = config["db_params"]
     api_url = config["api_url"]
     api_key = config["api_key"]
+    encryption_key = config["encryption_key"].encode()  # Преобразуем ключ в байты
 
     connection = connect_to_db(db_params)
     results = execute_queries(connection)
@@ -130,7 +163,9 @@ def main(config_path: str) -> None:
         buffer: io.BytesIO = io.BytesIO()
         joblib.dump(data, buffer)
         buffer.seek(0)
-        files[f"file{i+1}"] = buffer
+        # Зашифровываем данные
+        encrypted_buffer = encrypt_data(buffer, encryption_key)
+        files[f"file{i+1}"] = encrypted_buffer
         if i > 1:
             print("Ошибка загрузки данных: слишком много запросов")
             sys.exit(1)
