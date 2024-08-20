@@ -2,5 +2,4 @@ config.json
 .venv
 queries.txt
 build
-dist
 updater_app.egg-info
