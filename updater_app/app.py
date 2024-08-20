@@ -56,7 +56,8 @@ def parse_queries(file_path: str) -> Dict[str, str]:
     Returns
     -------
     Dict[str, str]
-        Словарь, где ключи первые символы до двоеточия в фале, значения - полученные данные.
+        Словарь, где ключи первые символы до двоеточия в файле (названия запросов),
+        значения - запросы.
     """
     queries = {}
     with open(file_path, "r", encoding="utf-8") as file:
@@ -82,8 +83,8 @@ def execute_queries(
     -------
     Dict[str, List[Tuple[Any, ...]]]
         Словарь, содержащий результаты запросов.
-        Ключами словаря являются названия запросов (строки),
-        значениями — списки кортежей, представляющих строки результатов запросов.
+        Ключами словаря являются названия запросов,
+        значениями — дата-фреймы, полученные в результате запросов.
 
     Raises
     ------
@@ -137,23 +138,22 @@ def encrypt_data(data: io.BytesIO, key: bytes) -> io.BytesIO:
 def main(config_path: str, queries_path: str) -> None:
     """
     Выполняет основной функционал скрипта: устанавливает соединение с базой данных,
-    запрашивает информацию, преобразует данные в формат, требуемый API (pd.DataFrame),
-    сохраняет в байтовый поток и отправляет как файлы в API.
-    Сейчас работает, как костыль с конкретными форматами файлов.
+    считывает информацию, сохраняет данные в байтовый поток, шифрует их и
+    отправляет как файлы в API.
 
     Parameters
     ----------
-    db_params : dict
-        Словарь с данными для подключения к базе данных.
+    config_path : str
+        Строка с путем к конфигурационному файлу. Считывается из аргументов командной строки.
     api_url : str
-        Адрес API.
+        Строка с адресом API. Считывается из аргументов командной строки.
     """
     config = load_config(config_path)
 
     db_params = config["db_params"]
     api_url = config["api_url"]
     api_key = config["api_key"]
-    encryption_key = config["encryption_key"].encode()  # Преобразуем ключ в байты
+    encryption_key = config["encryption_key"].encode()
 
     connection = connect_to_db(db_params)
     results = execute_queries(connection, queries_path)
