@@ -1,0 +1,2 @@
+table_one: SELECT id, name FROM table_one
+table_two: SELECT id, name FROM table_two

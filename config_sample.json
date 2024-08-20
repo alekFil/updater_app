@@ -1,0 +1,12 @@
+{
+    "db_params": {
+        "dbname": "my_database",
+        "user": "my_user",
+        "password": "my_pwd",
+        "host": "31.27.58.200",
+        "port": "5432"
+    },
+    "api_url": "http://31.27.58.200:8000/",
+    "api_key": "vhT-dfA",
+    "encryption_key": "dgnlkf9gtDvb93NHrtyg5-df5gHC7HHd545Fny="
+}
