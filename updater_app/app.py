@@ -68,6 +68,7 @@ def parse_queries(file_path: str) -> Dict[str, str]:
 
 def execute_queries(
     connection: psycopg2.extensions.connection,
+    queries_path: str,
 ) -> Dict[str, List[Tuple[Any, ...]]]:
     """
     Выполняет запросы к базе данных из файла.
@@ -90,7 +91,7 @@ def execute_queries(
         Если выполнение запросов завершилось с ошибкой.
     """
     try:
-        queries = parse_queries("queries.txt")
+        queries = parse_queries(queries_path)
 
         results = {}
         for key, value in queries.items():
@@ -133,7 +134,7 @@ def encrypt_data(data: io.BytesIO, key: bytes) -> io.BytesIO:
     return encrypted_stream
 
 
-def main(config_path: str) -> None:
+def main(config_path: str, queries_path: str) -> None:
     """
     Выполняет основной функционал скрипта: устанавливает соединение с базой данных,
     запрашивает информацию, преобразует данные в формат, требуемый API (pd.DataFrame),
@@ -155,7 +156,7 @@ def main(config_path: str) -> None:
     encryption_key = config["encryption_key"].encode()  # Преобразуем ключ в байты
 
     connection = connect_to_db(db_params)
-    results = execute_queries(connection)
+    results = execute_queries(connection, queries_path)
 
     # Сохранение данных в объекты байтового потока (как файл)
     files = {}
@@ -195,12 +196,12 @@ def main(config_path: str) -> None:
 
 def run() -> None:
     """Начальная функция для парсинга аргументов командной строки"""
-    if len(sys.argv) != 2:
-        print("Usage: updater_app <path_to_config>")
+    if len(sys.argv) != 3:
+        print("Usage: updater_app <path_to_config> <path_to_queries>")
         sys.exit(1)
 
-    config_path = sys.argv[1]
-    main(config_path)
+    config_path, queries_path = sys.argv[1], sys.argv[2]
+    main(config_path, queries_path)
 
 
 if __name__ == "__main__":
